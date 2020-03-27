@@ -5,6 +5,10 @@ service: notes-app-api
 package:
   individually: true
 
+custom:
+  bundle:
+    linting: false
+
 plugins:
   - serverless-bundle # Package our functions with Webpack
   - serverless-offline
@@ -36,7 +40,7 @@ provider:
         - dynamodb:GetItem
         - dynamodb:PutItem
         - dynamodb:UpdateItem
-        - dynamodb::DeleteItem
+        - dynamodb:DeleteItem
       Resource: "arn:aws:dynamodb:us-east-2:*:*"
 
 
