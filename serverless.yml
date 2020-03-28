@@ -1,29 +1,34 @@
 # NOTE: update this with your service name
-service: notes-app-api
+service: notes-app-2-api
 
 # Create an optimized package for our functions 
 package:
   individually: true
-
-custom:
-  bundle:
-    linting: false
 
 plugins:
   - serverless-bundle # Package our functions with Webpack
   - serverless-offline
   - serverless-dotenv-plugin # Load .env as environment variables
 
+custom:
+  # Our stage is based on what is passed in when running serverless
+  # commands. Or fallsback to what we have set in the provider section.
+  stage: ${opt:stage, self:provider.stage}
+  # Set the table name here so we can use it while testing locally
+  tableName: ${self:custom.stage}-notes
+  bundle:
+    linting: false
+
 provider:
   name: aws
   runtime: nodejs12.x
-  stage: prod
+  stage: dev
   region: us-east-2
   
   # These environment variables are made available to our functions
   # under process.env.
   environment:
-    tableName: ${env:TABLE_NAME}
+    tableName: ${self:custom.tableName}
     stripeSecretKey: ${env:STRIPE_SECRET_KEY}
   
   iamRoleStatements:
@@ -38,7 +43,8 @@ provider:
         - dynamodb:DeleteItem
       # Restrict our IAM role permissions to
       # the specific table for the stage
-      Resource: "arn:aws:dynamodb:us-east-2:*:*"        
+      Resource:
+        - "Fn::GetAtt": [ NotesTable, Arn ]      
 
 functions:
   # Defines an HTTP API endpoint that calls the main function in create.js
@@ -95,7 +101,14 @@ functions:
           cors: true
           authorizer: aws_iam
 
-# Create resources with separate CloudFormation templates
+# Create our resources with separate CloudFormation templates
 resources:
   # API Gateway Errors
   - ${file(resources/api-gateway-errors.yml)}
+  # DynamoDB
+  - ${file(resources/dynamodb-table.yml)}
+  # S3
+  - ${file(resources/s3-bucket.yml)}
+  # Cognito
+  - ${file(resources/cognito-user-pool.yml)}
+  - ${file(resources/cognito-identity-pool.yml)}
